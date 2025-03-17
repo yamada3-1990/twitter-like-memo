@@ -1,3 +1,7 @@
+package app
+
+import "context"
+
 type Memo struct {
 	ID    int    `db:"id" json:"title"`
 	Title string `db:"title" json:"title"`
