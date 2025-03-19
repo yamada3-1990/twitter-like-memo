@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"log/slog"
 	"os"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type Memo struct {
@@ -15,7 +17,7 @@ type Memo struct {
 
 type ItemRepository interface {
 	Insert(ctx context.Context, memo *Memo) error
-	GetAll(ctx context.Context) ([]Memo, error)
+	GetAllMemos(ctx context.Context) ([]Memo, error)
 }
 
 // itemRepository is an implementation of ItemRepository
@@ -56,7 +58,7 @@ func (i *itemRepository) Insert(ctx context.Context, memo *Memo) error {
 	return tx.Commit()
 }
 
-func (i *itemRepository) GetAll(ctx context.Context) ([]Memo, error) {
+func (i *itemRepository) GetAllMemos(ctx context.Context) ([]Memo, error) {
 	query := `SELECT * FROM memos`
 	rows, err := i.db.QueryContext(ctx, query)
 	if err != nil {

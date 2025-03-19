@@ -8,6 +8,8 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type Server struct {
@@ -47,7 +49,7 @@ func (s Server) Run() int {
 		frontURL = "http://localhost:3000"
 	}
 
-	db, err := sql.Open("sqlite3", "db/memo.db")
+	db, err := sql.Open("sqlite3", "db/memo.sqlite3")
 	if err != nil {
 		slog.Error("failed to open database: ", "error", err)
 		return 1
@@ -65,6 +67,7 @@ func (s Server) Run() int {
 	// ルーティング
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /memos", h.AddMemo)
+	mux.HandleFunc("GET /memos", h.GetMemos)
 
 	// サーバーの起動
 	slog.Info("http server started on", "port", s.Port)
@@ -123,6 +126,28 @@ func (s *Handlers) AddMemo(w http.ResponseWriter, r *http.Request) {
 	resp := AddMemoResponse{Message: message}
 	err = json.NewEncoder(w).Encode(resp)
 	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (s *Handlers) GetMemos(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	memos, err := s.itemRepo.GetAllMemos(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response := struct {
+		Memos []Memo `json:"memos"`
+	}{
+		Memos: memos,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
