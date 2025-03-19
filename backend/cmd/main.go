@@ -1,8 +1,8 @@
 package main
 
 import (
-	"mercari-build-training/app"
 	"os"
+	"twitter-like-memo/backend/app"
 )
 
 const (

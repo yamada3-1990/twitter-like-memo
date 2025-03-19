@@ -1,14 +1,77 @@
 package app
 
-import "context"
+import (
+	"context"
+	"database/sql"
+	"log/slog"
+	"os"
+)
 
 type Memo struct {
-	ID    int    `db:"id" json:"title"`
+	ID    int    `db:"id" json:"id"`
 	Title string `db:"title" json:"title"`
 	Body  string `db:"body" json:"body"`
-	Image string `db:"image" json:"image"`
 }
 
 type ItemRepository interface {
-	AddMemo(ctx context.Context, memo *Memo) error
+	Insert(ctx context.Context, memo *Memo) error
+	GetAll(ctx context.Context) ([]Memo, error)
+}
+
+// itemRepository is an implementation of ItemRepository
+type itemRepository struct {
+	db *sql.DB
+}
+
+// 新しいitemRepositoryを作成
+func NewItemRepository(db *sql.DB) (ItemRepository, error) {
+	// テーブルが無かったら作成
+	q, err := os.ReadFile("db/schema.sql")
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = db.Exec(string(q))
+	if err != nil {
+		slog.Error("failed to create memos table", "error", err)
+		return nil, err
+	}
+
+	return &itemRepository{db: db}, nil
+}
+
+// インサート
+func (i *itemRepository) Insert(ctx context.Context, memo *Memo) error {
+	tx, err := i.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	query := `INSERT INTO memos (title, body) VALUES (?, ?)`
+	_, err = tx.ExecContext(ctx, query, memo.Title, memo.Body)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (i *itemRepository) GetAll(ctx context.Context) ([]Memo, error) {
+	query := `SELECT * FROM memos`
+	rows, err := i.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var memos []Memo
+	for rows.Next() {
+		var memo Memo
+		err := rows.Scan(&memo.ID, &memo.Title, &memo.Body)
+		if err != nil {
+			return nil, err
+		}
+		memos = append(memos, memo)
+	}
+	return memos, nil
 }
