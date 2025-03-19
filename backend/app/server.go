@@ -35,6 +35,7 @@ type AddMemoResponse struct {
 	Message string `json:"message"`
 }
 
+// MARK: - Run()
 func (s Server) Run() int {
 	// ログ設定
 	opts := slog.HandlerOptions{
@@ -68,6 +69,7 @@ func (s Server) Run() int {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /memos", h.AddMemo)
 	mux.HandleFunc("GET /memos", h.GetMemos)
+	mux.HandleFunc("DELETE /memos", h.DeleteMemo)
 
 	// サーバーの起動
 	slog.Info("http server started on", "port", s.Port)
@@ -80,6 +82,7 @@ func (s Server) Run() int {
 	return 0
 }
 
+// MARK: - parseAddMemoRequest()
 // Memoの追加リクエストをパースする
 func parseAddMemoRequest(r *http.Request) (*AddMemoRequest, error) {
 	var req = &AddMemoRequest{
@@ -99,6 +102,7 @@ func parseAddMemoRequest(r *http.Request) (*AddMemoRequest, error) {
 	return req, nil
 }
 
+// MARK: - AddMemo()
 // POST /memos でメモを追加
 func (s *Handlers) AddMemo(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -131,6 +135,8 @@ func (s *Handlers) AddMemo(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// MARK: - GetMemos()
+// GET /memos でメモを取得
 func (s *Handlers) GetMemos(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -148,6 +154,64 @@ func (s *Handlers) GetMemos(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+// MARK: - parseDeleteMemoRequest()
+// Memoの削除リクエストをパースする
+func parseDeleteMemoRequest(r *http.Request) (*AddMemoRequest, error) {
+	var req = &AddMemoRequest{
+		Title: r.FormValue("title"),
+		Body:  r.FormValue("body"),
+	}
+
+	// バリデーション
+	if req.Title == "" {
+		return nil, errors.New("deleted title is required")
+	}
+
+	if req.Body == "" {
+		return nil, errors.New("body is required")
+	}
+
+	return req, nil
+}
+
+// MARK: - DeleteMemo()
+// DELETE /memos でメモを削除
+func (s *Handlers) DeleteMemo(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	req, err := parseDeleteMemoRequest(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	memo := &Memo{
+		Title: req.Title,
+		Body:  req.Body,
+	}
+	message := fmt.Sprintf("deleted memo: %s", memo.Title)
+	slog.Info(message)
+
+	err = s.itemRepo.Delete(ctx, memo)
+	if err != nil {
+		if errors.Is(err, errors.New("memo not exist")) { // カスタムエラーをチェック
+			slog.Error("memo not exist", "error", err)           // 警告ログ
+			http.Error(w, "memo not exist", http.StatusNotFound) // 404エラー
+			return
+		}
+		slog.Error("failed to delete memo: ", "error", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	resp := AddMemoResponse{Message: message}
+	err = json.NewEncoder(w).Encode(resp)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
