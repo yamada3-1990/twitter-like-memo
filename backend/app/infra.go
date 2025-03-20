@@ -11,10 +11,10 @@ import (
 )
 
 type Memo struct {
-	ID    int      `db:"id" json:"id"`
-	Title string   `db:"title" json:"title"`
-	Body  string   `db:"body" json:"body"`
-	Tags  []string `db:"tags" json:"tags"`
+	ID    int    `db:"id" json:"id"`
+	Title string `db:"title" json:"title"`
+	Body  string `db:"body" json:"body"`
+	Tags  string `db:"tags" json:"tags"`
 }
 
 type ItemRepository interface {
@@ -99,7 +99,19 @@ func (i *itemRepository) Insert(ctx context.Context, memo *Memo) error {
 
 // MARK: - GetAllMemos()
 func (i *itemRepository) GetAllMemos(ctx context.Context) ([]Memo, error) {
-	query := `SELECT * FROM memos`
+	query := `
+				SELECT
+					memos.*,
+					COALESCE(GROUP_CONCAT(tags.name), '') AS tags
+				FROM
+					memos
+				LEFT JOIN
+					memo_tags ON memos.id = memo_tags.memo_id
+				LEFT JOIN
+					tags ON memo_tags.tag_id = tags.id
+				GROUP BY
+					memos.id;
+			`
 	rows, err := i.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
@@ -109,7 +121,7 @@ func (i *itemRepository) GetAllMemos(ctx context.Context) ([]Memo, error) {
 	var memos []Memo
 	for rows.Next() {
 		var memo Memo
-		err := rows.Scan(&memo.ID, &memo.Title, &memo.Body)
+		err := rows.Scan(&memo.ID, &memo.Title, &memo.Body, &memo.Tags)
 		if err != nil {
 			return nil, err
 		}

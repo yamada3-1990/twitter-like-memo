@@ -27,10 +27,10 @@ type Handlers struct {
 }
 
 type AddMemoRequest struct {
-	ID    int      `form:"id"`
-	Title string   `form:"title"`
-	Body  string   `form:"body"`
-	Tags  []string `form: "tags"`
+	ID    int    `form:"id"`
+	Title string `form:"title"`
+	Body  string `form:"body"`
+	Tags  string `form:"tags"`
 }
 
 type AddMemoResponse struct {
@@ -101,7 +101,7 @@ func parseAddMemoRequest(r *http.Request) (*AddMemoRequest, error) {
 	req := &AddMemoRequest{
 		Title: r.FormValue("title"),
 		Body:  r.FormValue("body"),
-		Tags:  tagList,
+		Tags:  strings.Join(tagList, ","),
 	}
 
 	// バリデーション
