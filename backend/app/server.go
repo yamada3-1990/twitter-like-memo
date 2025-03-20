@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -29,6 +31,7 @@ type AddMemoRequest struct {
 	ID    int    `form:"id"`
 	Title string `form:"title"`
 	Body  string `form:"body"`
+	Tags  string `form:"tags"`
 }
 
 type AddMemoResponse struct {
@@ -85,9 +88,21 @@ func (s Server) Run() int {
 // MARK: - parseAddMemoRequest()
 // Memoの追加リクエストをパースする
 func parseAddMemoRequest(r *http.Request) (*AddMemoRequest, error) {
-	var req = &AddMemoRequest{
+	err := r.ParseForm()
+	if err != nil {
+		return nil, err
+	}
+
+	tags := r.Form["tags"] // 複数のタグを取得
+	var tagList []string
+	for _, tag := range tags {
+		tagList = append(tagList, strings.Split(tag, ",")...) // カンマ区切りのタグを分割
+	}
+
+	req := &AddMemoRequest{
 		Title: r.FormValue("title"),
 		Body:  r.FormValue("body"),
+		Tags:  strings.Join(tagList, ","),
 	}
 
 	// バリデーション
@@ -116,9 +131,11 @@ func (s *Handlers) AddMemo(w http.ResponseWriter, r *http.Request) {
 	memo := &Memo{
 		Title: req.Title,
 		Body:  req.Body,
+		Tags:  req.Tags,
 	}
 	message := fmt.Sprintf("memo received: %s", memo.Title)
 	slog.Info(message)
+	log.Printf("memo.Tags: %T, %v", memo.Tags, memo.Tags)
 
 	err = s.itemRepo.Insert(ctx, memo)
 	if err != nil {
@@ -168,23 +185,13 @@ func parseDeleteMemoRequest(r *http.Request) (*AddMemoRequest, error) {
 	}
 
 	// バリデーション
-	// titleLimit := 50
-	// bodyLimit := 500
 	if req.Title == "" {
 		return nil, errors.New("deleted title is required")
 	}
 
-	// if utf8.RuneCountInString(req.Title) >= titleLimit {
-	// 	return nil, errors.New("title is too long")
-	// }
-
 	if req.Body == "" {
 		return nil, errors.New("body is required")
 	}
-
-	// if utf8.RuneCountInString(req.Body) >= bodyLimit {
-	// 	return nil, errors.New("body is too long")
-	// }
 
 	return req, nil
 }

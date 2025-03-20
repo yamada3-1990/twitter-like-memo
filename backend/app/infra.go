@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"os"
+	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -14,6 +15,7 @@ type Memo struct {
 	ID    int    `db:"id" json:"id"`
 	Title string `db:"title" json:"title"`
 	Body  string `db:"body" json:"body"`
+	Tags  string `db:"tags" json:"tags"`
 }
 
 type ItemRepository interface {
@@ -52,10 +54,47 @@ func (i *itemRepository) Insert(ctx context.Context, memo *Memo) error {
 	}
 	defer tx.Rollback()
 
+	// titleとbodyをインサート
 	query := `INSERT INTO memos (title, body) VALUES (?, ?)`
-	_, err = tx.ExecContext(ctx, query, memo.Title, memo.Body)
+	res, err := tx.ExecContext(ctx, query, memo.Title, memo.Body)
 	if err != nil {
 		return err
+	}
+
+	// 今インサートしたメモのidを取得
+	memoID, err := res.LastInsertId()
+	if err != nil {
+		return err
+	}
+
+	// カンマ区切りで分割
+	tagNames := strings.Split(memo.Tags, ",")
+
+	for _, tagName := range tagNames {
+		//前後の空白を削除
+		tagName = strings.TrimSpace(tagName)
+		// タグの存在を確認
+		var tagID int64
+		err := tx.QueryRow("SELECT id FROM tags WHERE name = ?", tagName).Scan(&tagID)
+		if err == sql.ErrNoRows {
+			// タグが存在しない場合は挿入
+			result, err := tx.Exec("INSERT INTO tags (name) VALUES (?)", tagName)
+			if err != nil {
+				return err
+			}
+			tagID, err = result.LastInsertId()
+			if err != nil {
+				return err
+			}
+		} else if err != nil {
+			return err
+		}
+
+		// メモとタグの関連付け
+		_, err = tx.Exec("INSERT INTO memo_tags (memo_id, tag_id) VALUES (?, ?)", memoID, tagID)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = tx.Commit()
@@ -68,7 +107,19 @@ func (i *itemRepository) Insert(ctx context.Context, memo *Memo) error {
 
 // MARK: - GetAllMemos()
 func (i *itemRepository) GetAllMemos(ctx context.Context) ([]Memo, error) {
-	query := `SELECT * FROM memos`
+	query := `
+				SELECT
+					memos.*,
+					COALESCE(GROUP_CONCAT(tags.name), '') AS tags
+				FROM
+					memos
+				LEFT JOIN
+					memo_tags ON memos.id = memo_tags.memo_id
+				LEFT JOIN
+					tags ON memo_tags.tag_id = tags.id
+				GROUP BY
+					memos.id;
+			`
 	rows, err := i.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
@@ -78,7 +129,7 @@ func (i *itemRepository) GetAllMemos(ctx context.Context) ([]Memo, error) {
 	var memos []Memo
 	for rows.Next() {
 		var memo Memo
-		err := rows.Scan(&memo.ID, &memo.Title, &memo.Body)
+		err := rows.Scan(&memo.ID, &memo.Title, &memo.Body, &memo.Tags)
 		if err != nil {
 			return nil, err
 		}
