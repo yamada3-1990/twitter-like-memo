@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"os"
+	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -53,18 +54,25 @@ func (i *itemRepository) Insert(ctx context.Context, memo *Memo) error {
 	}
 	defer tx.Rollback()
 
+	// titleとbodyをインサート
 	query := `INSERT INTO memos (title, body) VALUES (?, ?)`
 	res, err := tx.ExecContext(ctx, query, memo.Title, memo.Body)
 	if err != nil {
 		return err
 	}
 
+	// 今インサートしたメモのidを取得
 	memoID, err := res.LastInsertId()
 	if err != nil {
 		return err
 	}
 
-	for _, tagName := range memo.Tags {
+	// カンマ区切りで分割
+	tagNames := strings.Split(memo.Tags, ",")
+
+	for _, tagName := range tagNames {
+		//前後の空白を削除
+		tagName = strings.TrimSpace(tagName)
 		// タグの存在を確認
 		var tagID int64
 		err := tx.QueryRow("SELECT id FROM tags WHERE name = ?", tagName).Scan(&tagID)

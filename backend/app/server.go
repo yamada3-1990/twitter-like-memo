@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -134,6 +135,7 @@ func (s *Handlers) AddMemo(w http.ResponseWriter, r *http.Request) {
 	}
 	message := fmt.Sprintf("memo received: %s", memo.Title)
 	slog.Info(message)
+	log.Printf("memo.Tags: %T, %v", memo.Tags, memo.Tags)
 
 	err = s.itemRepo.Insert(ctx, memo)
 	if err != nil {
