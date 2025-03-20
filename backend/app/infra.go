@@ -11,9 +11,10 @@ import (
 )
 
 type Memo struct {
-	ID    int    `db:"id" json:"id"`
-	Title string `db:"title" json:"title"`
-	Body  string `db:"body" json:"body"`
+	ID    int      `db:"id" json:"id"`
+	Title string   `db:"title" json:"title"`
+	Body  string   `db:"body" json:"body"`
+	Tags  []string `db:"tags" json:"tags"`
 }
 
 type ItemRepository interface {
@@ -53,9 +54,39 @@ func (i *itemRepository) Insert(ctx context.Context, memo *Memo) error {
 	defer tx.Rollback()
 
 	query := `INSERT INTO memos (title, body) VALUES (?, ?)`
-	_, err = tx.ExecContext(ctx, query, memo.Title, memo.Body)
+	res, err := tx.ExecContext(ctx, query, memo.Title, memo.Body)
 	if err != nil {
 		return err
+	}
+
+	memoID, err := res.LastInsertId()
+	if err != nil {
+		return err
+	}
+
+	for _, tagName := range memo.Tags {
+		// タグの存在を確認
+		var tagID int64
+		err := tx.QueryRow("SELECT id FROM tags WHERE name = ?", tagName).Scan(&tagID)
+		if err == sql.ErrNoRows {
+			// タグが存在しない場合は挿入
+			result, err := tx.Exec("INSERT INTO tags (name) VALUES (?)", tagName)
+			if err != nil {
+				return err
+			}
+			tagID, err = result.LastInsertId()
+			if err != nil {
+				return err
+			}
+		} else if err != nil {
+			return err
+		}
+
+		// メモとタグの関連付け
+		_, err = tx.Exec("INSERT INTO memo_tags (memo_id, tag_id) VALUES (?, ?)", memoID, tagID)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = tx.Commit()
