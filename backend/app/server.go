@@ -168,13 +168,23 @@ func parseDeleteMemoRequest(r *http.Request) (*AddMemoRequest, error) {
 	}
 
 	// バリデーション
+	// titleLimit := 50
+	// bodyLimit := 500
 	if req.Title == "" {
 		return nil, errors.New("deleted title is required")
 	}
 
+	// if utf8.RuneCountInString(req.Title) >= titleLimit {
+	// 	return nil, errors.New("title is too long")
+	// }
+
 	if req.Body == "" {
 		return nil, errors.New("body is required")
 	}
+
+	// if utf8.RuneCountInString(req.Body) >= bodyLimit {
+	// 	return nil, errors.New("body is too long")
+	// }
 
 	return req, nil
 }
