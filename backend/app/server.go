@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -40,6 +39,10 @@ type AddMemoResponse struct {
 
 type SearchByKeywordRequest struct {
 	keyword string
+}
+
+type SearchByTagsRequest struct {
+	tags []string
 }
 
 // MARK: - Run()
@@ -78,7 +81,7 @@ func (s Server) Run() int {
 	mux.HandleFunc("GET /memos", h.GetMemos)
 	mux.HandleFunc("DELETE /memos", h.DeleteMemo)
 	mux.HandleFunc("GET /search/keyword", h.SearchByKeyword)
-	// mux.HandleFunc("GET /search/tags", h.SearchByTag)
+	mux.HandleFunc("GET /search/tags", h.SearchByTags)
 
 	// サーバーの起動
 	slog.Info("http server started on", "port", s.Port)
@@ -141,7 +144,6 @@ func (s *Handlers) AddMemo(w http.ResponseWriter, r *http.Request) {
 	}
 	message := fmt.Sprintf("memo received: %s", memo.Title)
 	slog.Info(message)
-	log.Printf("memo.Tags: %T, %v", memo.Tags, memo.Tags)
 
 	err = s.itemRepo.Insert(ctx, memo)
 	if err != nil {
@@ -286,4 +288,60 @@ func (s *Handlers) SearchByKeyword(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(jsonData)
+}
+
+// MARK: - parseSearchByTagsRequest()
+// Memoのタグ検索リクエストをパースする
+func parseSearchByTagsRequest(r *http.Request) (*SearchByTagsRequest, error) {
+	// クエリパラメータから直接取得
+	tags := r.URL.Query()["tags"]
+	if len(tags) == 0 {
+		return nil, errors.New("tags is required")
+	}
+
+	var tagList []string
+	for _, tag := range tags {
+		tagList = append(tagList, strings.Split(tag, ",")...) // カンマ区切りのタグを分割
+	}
+
+	req := &SearchByTagsRequest{
+		tags: tagList,
+	}
+
+	return req, nil
+}
+
+// MARK: - SearchByTag()
+// GET /search/tags でメモを検索
+func (s *Handlers) SearchByTags(w http.ResponseWriter, r *http.Request) {
+	req, err := parseSearchByTagsRequest(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	memos, err := s.itemRepo.SearchByTags(r.Context(), req.tags)
+
+	if err != nil {
+		if errors.Is(err, errMemoNotFound) {
+			slog.Warn("memo not exist: ", "error", err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+
+	if memos == nil {
+		memos = []Memo{}
+	}
+
+	jsonData, err := json.Marshal(memos)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(jsonData)
+
 }

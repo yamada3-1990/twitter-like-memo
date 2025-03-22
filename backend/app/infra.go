@@ -25,6 +25,7 @@ type ItemRepository interface {
 	GetAllMemos(ctx context.Context) ([]Memo, error)
 	Delete(ctx context.Context, memo *Memo) error
 	SearchByKeyword(ctx context.Context, keyword string) ([]Memo, error)
+	SearchByTags(ctx context.Context, tags []string) ([]Memo, error)
 }
 
 // itemRepository is an implementation of ItemRepository
@@ -204,9 +205,81 @@ func (i *itemRepository) SearchByKeyword(ctx context.Context, keyword string) ([
 		var memo Memo
 		err := rows.Scan(&memo.ID, &memo.Title, &memo.Body, &memo.Tags)
 		if err != nil {
+			if err == sql.ErrNoRows {
+				return []Memo{}, errMemoNotFound
+			} else {
+				return nil, err
+			}
+		}
+		memos = append(memos, memo)
+	}
+	return memos, nil
+}
+
+// MARK: - SearchByTags()
+func (i *itemRepository) SearchByTags(ctx context.Context, tags []string) ([]Memo, error) {
+	if len(tags) == 0 {
+		return []Memo{}, nil
+	}
+
+	// tagsスライスと同じ長さの文字列スライスを作成
+	subqueries := make([]string, len(tags))
+	// tagsスライスと同じ長さのインターフェーススライスを作成
+	// SQLのプレースホルダの?に渡す引数を格納
+	args := make([]interface{}, len(tags))
+	for i, tag := range tags {
+		subqueries[i] = `EXISTS (
+			SELECT 1 FROM memo_tags mt
+			JOIN tags t ON mt.tag_id = t.id
+			WHERE mt.memo_id = memos.id AND t.name = ?
+		)`
+		args[i] = tag
+	}
+
+	// 全てのサブクエリをANDで結合
+	query := `
+		SELECT DISTINCT
+			memos.id,
+			memos.title,
+			memos.body,
+			GROUP_CONCAT(DISTINCT tags.name) AS tags
+		FROM
+			memos
+		LEFT JOIN
+			memo_tags ON memos.id = memo_tags.memo_id
+		LEFT JOIN
+			tags ON memo_tags.tag_id = tags.id
+		WHERE
+			` + strings.Join(subqueries, " AND ") + `
+		GROUP BY
+			memos.id, memos.title, memos.body;
+	`
+
+	// // デバッグ用
+	// slog.Info("executing query", "query", query, "args", args)
+
+	rows, err := i.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		slog.Error("query execution failed", "error", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var memos []Memo
+	for rows.Next() {
+		var memo Memo
+		err := rows.Scan(&memo.ID, &memo.Title, &memo.Body, &memo.Tags)
+		if err != nil {
+			slog.Error("row scanning failed", "error", err)
 			return nil, err
 		}
 		memos = append(memos, memo)
 	}
+	if err = rows.Err(); err != nil {
+		slog.Error("rows iteration failed", "error", err)
+		return nil, err
+	}
+	// デバッグ用
+	// slog.Info("query completed", "result_count", len(memos))
 	return memos, nil
 }
