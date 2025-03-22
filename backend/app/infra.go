@@ -11,6 +11,8 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+var errMemoNotFound = errors.New("memo not found")
+
 type Memo struct {
 	ID    int    `db:"id" json:"id"`
 	Title string `db:"title" json:"title"`
@@ -22,6 +24,7 @@ type ItemRepository interface {
 	Insert(ctx context.Context, memo *Memo) error
 	GetAllMemos(ctx context.Context) ([]Memo, error)
 	Delete(ctx context.Context, memo *Memo) error
+	SearchByKeyword(ctx context.Context, keyword string) ([]Memo, error)
 }
 
 // itemRepository is an implementation of ItemRepository
@@ -169,4 +172,41 @@ func (i *itemRepository) Delete(ctx context.Context, memo *Memo) error {
 	}
 
 	return nil
+}
+
+// MARK: - SearchByKeyword()
+func (i *itemRepository) SearchByKeyword(ctx context.Context, keyword string) ([]Memo, error) {
+	query := `
+				SELECT
+					memos.id,
+					memos.title,
+					memos.body,
+					GROUP_CONCAT(tags.name) AS tags
+				FROM
+					memos
+				LEFT JOIN
+					memo_tags ON memos.id = memo_tags.memo_id
+				LEFT JOIN
+					tags ON memo_tags.tag_id = tags.id
+				WHERE
+					memos.title LIKE '%' || ? || '%' OR memos.body LIKE '%' || ? || '%'
+				GROUP BY
+					memos.id;
+			`
+	rows, err := i.db.Query(query, keyword, keyword)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var memos []Memo
+	for rows.Next() {
+		var memo Memo
+		err := rows.Scan(&memo.ID, &memo.Title, &memo.Body, &memo.Tags)
+		if err != nil {
+			return nil, err
+		}
+		memos = append(memos, memo)
+	}
+	return memos, nil
 }

@@ -38,6 +38,10 @@ type AddMemoResponse struct {
 	Message string `json:"message"`
 }
 
+type SearchByKeywordRequest struct {
+	keyword string
+}
+
 // MARK: - Run()
 func (s Server) Run() int {
 	// ログ設定
@@ -73,6 +77,8 @@ func (s Server) Run() int {
 	mux.HandleFunc("POST /memos", h.AddMemo)
 	mux.HandleFunc("GET /memos", h.GetMemos)
 	mux.HandleFunc("DELETE /memos", h.DeleteMemo)
+	mux.HandleFunc("GET /search/keyword", h.SearchByKeyword)
+	// mux.HandleFunc("GET /search/tags", h.SearchByTag)
 
 	// サーバーの起動
 	slog.Info("http server started on", "port", s.Port)
@@ -232,4 +238,52 @@ func (s *Handlers) DeleteMemo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+// MARK: - parseSearchByKeywordRequest()
+// Memoのキーワード検索リクエストをパースする
+func parseSearchByKeywordRequest(r *http.Request) (*SearchByKeywordRequest, error) {
+	req := &SearchByKeywordRequest{
+		keyword: r.URL.Query().Get("keyword"),
+	}
+
+	// バリデーション
+	if req.keyword == "" {
+		return nil, errors.New("keyword is required")
+	}
+	return req, nil
+}
+
+// MARK: - SearchByKeyword()
+// GET /search/keyword でメモを検索
+func (s *Handlers) SearchByKeyword(w http.ResponseWriter, r *http.Request) {
+	req, err := parseSearchByKeywordRequest(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	memos, err := s.itemRepo.SearchByKeyword(r.Context(), req.keyword)
+
+	if err != nil {
+		if errors.Is(err, errMemoNotFound) {
+			slog.Warn("memo not exist: ", "error", err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+
+	if memos == nil {
+		memos = []Memo{}
+	}
+
+	jsonData, err := json.Marshal(memos)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(jsonData)
 }
