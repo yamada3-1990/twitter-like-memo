@@ -1,5 +1,5 @@
 name: build
-run-name: building ${{ github.ref_name }} now!
+run-name: 📦 Packaging up ${{ github.ref_name }}!
 on: [push]
 
 env:

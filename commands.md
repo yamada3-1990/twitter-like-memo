@@ -24,8 +24,13 @@
 ```curl.exe -X DELETE --url 'http://localhost:9000/memos?title=明日は&body=Hello%20こんにちは'  ```      
 
 ## ■Docker  
-build  
-```docker build -t twitter-like-memo/app:latest .```
-
+pull  
+```docker pull ghcr.io/yamada3-1990/twitter-like-memo:~~~```  
 run  
-```docker run -d -p 9000:9000 twitter-like-memo/app:latest```
+```docker run -p 9000:9000 ghcr.io/yamada3-1990/twitter-like-memo:~~~```  
+
+~~build~~  
+~~```docker build -t twitter-like-memo/app:latest .```~~
+
+~~run~~  
+~~```docker run -d -p 9000:9000 twitter-like-memo/app:latest```~~  
