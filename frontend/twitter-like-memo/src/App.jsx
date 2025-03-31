@@ -4,30 +4,46 @@ import viteLogo from '/vite.svg'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
     <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+      <div className='add-memo'>
+        <input className='input-title' type='text' placeholder='タイトル' />
+        <input className='input-body' type='text' placeholder='本文' />
+        <input className='input-tag' type='text' placeholder='タグ' />
+        <button className='post-button'>メモを追加</button>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
+
+      <div className='search'>
+        <form action="検索">
+          <input className='search-keyword' type='text' placeholder='キーワード検索' />
+          <input className='search-tag' type='text' placeholder='タグ検索' />
+          <button className='search-button'>検索</button>
+        </form>
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+
+      <div className='timeline'>
+        <div className='memo-card'>
+          <div className='memo-title'>テストタイトル1</div>
+          <div className='memo-body'>テスト本文1</div>
+          {/* <div>1990-02-20 wed</div> */}
+        </div>
+
+        <hr />
+
+        <div className='memo-card'>
+          <div className='memo-title'>テストタイトル2</div>
+          <div className='memo-body'>テスト本文2</div>
+          {/* <div>1990-02-20 wed</div> */}
+        </div>
+
+        <hr />
+
+        <div className='memo-card'>
+          <div className='memo-title'>テストタイトル2</div>
+          <div className='memo-body'>テスト本文2</div>
+          {/* <div>1990-02-20 wed</div> */}
+        </div>
+      </div>
     </>
   )
 }
