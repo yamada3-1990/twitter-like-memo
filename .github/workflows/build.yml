@@ -48,3 +48,13 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+
+      - name: Notify Discord
+        run: |
+          curl -H "Content-Type: application/json" \
+          -X POST \
+          -d '{
+            "content": "packagingが完了しました!https://back-to-back.vercel.app/"
+          }' \
+           ${{ secrets.DISCORD_WEBHOOK_URL }}
