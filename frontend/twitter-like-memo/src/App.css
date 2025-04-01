@@ -108,7 +108,6 @@ body {
 .memo-card {
   padding: 1rem;
   border-bottom: 1px solid #e1e8ed;
-  /* margin: 1rem; */
 }
 
 .memo-card:last-child {
@@ -130,4 +129,27 @@ hr {
   border: none;
   border-bottom: 1px solid #e1e8ed;
   margin: 0;
+}
+
+@media not screen and (min-width: 1400px) {
+  .search {
+    position: static;
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  .search-keyword,
+  .search-tag {
+    width: 100%;
+  }
+
+  #root {
+    max-width: 100%;
+    padding: 0.5rem;
+  }
+
+  .add-memo,
+  .timeline {
+    margin: 0.5rem 0;
+  }
 }

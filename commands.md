@@ -34,3 +34,7 @@ run
 
 ~~run~~  
 ~~```docker run -d -p 9000:9000 twitter-like-memo/app:latest```~~  
+
+
+```cd frontend/twitter-like-memo```  
+```npm run dev```

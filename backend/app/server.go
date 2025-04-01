@@ -57,7 +57,7 @@ func (s Server) Run() int {
 	// CORSの設定
 	frontURL, found := os.LookupEnv("FRONT_URL")
 	if !found {
-		frontURL = "http://localhost:3000"
+		frontURL = "http://localhost:5173"
 	}
 
 	db, err := sql.Open("sqlite3", "db/memo.sqlite3")
@@ -97,10 +97,19 @@ func (s Server) Run() int {
 // MARK: - parseAddMemoRequest()
 // Memoの追加リクエストをパースする
 func parseAddMemoRequest(r *http.Request) (*AddMemoRequest, error) {
-	err := r.ParseForm()
+	// マルチパートフォームデータを解析
+	err := r.ParseMultipartForm(10 << 20) // 10MBの制限
 	if err != nil {
+		slog.Error("failed to parse multipart form", "error", err)
 		return nil, err
 	}
+
+	// フォームデータの内容をログ出力
+	slog.Info("received form data",
+		"form", r.Form,
+		"postForm", r.PostForm,
+		"multipartForm", r.MultipartForm,
+	)
 
 	tags := r.Form["tags"] // 複数のタグを取得
 	var tagList []string
@@ -113,6 +122,13 @@ func parseAddMemoRequest(r *http.Request) (*AddMemoRequest, error) {
 		Body:  r.FormValue("body"),
 		Tags:  strings.Join(tagList, ","),
 	}
+
+	// パースされたリクエストの内容をログ出力
+	slog.Info("parsed request",
+		"title", req.Title,
+		"body", req.Body,
+		"tags", req.Tags,
+	)
 
 	// バリデーション
 	if req.Title == "" {
