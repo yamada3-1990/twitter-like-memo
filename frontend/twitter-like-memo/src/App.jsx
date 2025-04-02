@@ -12,6 +12,10 @@ function App() {
     setReload(prev => !prev);
   };
 
+  const handleMemoDeleted = () => {
+    setReload(prev => !prev);
+  };
+
   return (
     <>
       <div>
@@ -24,7 +28,7 @@ function App() {
           <button className='search-button'>検索</button>
         </form>
       </div>
-      <MemoList reload={reload} />
+      <MemoList reload={reload} onDelete={handleMemoDeleted} />
     </>
   )
 }

@@ -65,3 +65,20 @@ export const addMemos = async (input) => {
 
     return response.json();
 };
+
+export const deleteMemo = async (memoId) => {
+    const response = await fetch(`${SERVER_URL}/memos/${memoId}`, {
+        method: 'DELETE',
+        mode: 'cors',
+        headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+        },
+    });
+
+    if (response.status >= 400) {
+        const error = await response.json();
+        throw new Error(`Failed to delete memo: ${JSON.stringify(error)}`);
+    }
+    return response.json();
+}

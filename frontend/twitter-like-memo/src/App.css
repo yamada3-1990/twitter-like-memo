@@ -104,11 +104,29 @@ body {
   transition: background-color 0.2s;
   width: 100%;
   margin-top: 0.5rem;
-
 }
 
 .search-button:hover {
   background-color: #1a8cd8;
+}
+
+.delete-button {
+  display: flex;
+  width: 24px;
+  height: 24px;
+  --svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='%23000'%3E%3Cpath fill-rule='evenodd' d='M17 5V4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v1H4a1 1 0 0 0 0 2h1v11a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3V7h1a1 1 0 1 0 0-2zm-2-1H9v1h6zm2 3H7v11a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1z' clip-rule='evenodd'/%3E%3Cpath d='M9 9h2v8H9zm4 0h2v8h-2z'/%3E%3C/g%3E%3C/svg%3E");
+  background-color: currentColor;
+  -webkit-mask-image: var(--svg);
+  mask-image: var(--svg);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  cursor: pointer;
+}
+
+.delete-button:hover {
+  background-color: red;
 }
 
 .timeline {
@@ -121,17 +139,35 @@ body {
 .memo-card {
   background-color: white;
   padding: 1rem;
-  /* border-bottom: 1px solid #c3c9ce; */
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  position: relative;
+  /* transition-duration: .4s; */
+}
+
+
+.memo-header {
+  background-color: white;
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1;
+}
+
+.memo-content {
+  background-color: white;
+  padding-top: 0.5rem;
 }
 
 .memo-card:last-child {
+  /* background-color: white; */
   border-bottom: none;
 }
 
+
 .memo-card:hover {
-  transform: scale(1.03);
+  background-color: white;
+  /* transform: scale(1.03); */
   border: solid 2px #1a8cd8;
   border-radius: 8px;
 }
