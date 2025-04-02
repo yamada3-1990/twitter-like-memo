@@ -24,7 +24,7 @@ export const MemoList = (props) => {
                         <div className='memo-title'>{memo.title}</div>
                         <div className='memo-body'>{memo.body}</div>
                     </div>
-                    <hr />
+                    {/* <hr /> */}
                 </div>
             ))}
         </>

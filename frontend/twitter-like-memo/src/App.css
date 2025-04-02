@@ -7,7 +7,8 @@
 }
 
 * {
-  background-color: white;
+  /* background-color: #ddf2ff; */
+  background-color: #ea6e6e;
   color: #0f1419;
 }
 
@@ -19,14 +20,19 @@ body {
   background-color: white;
   padding: 1rem;
   border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   margin-bottom: 1rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .input-title,
 .input-body,
-.input-tag {
-  width: 95%;
+.input-tag,
+.search-keyword,
+.search-tag {
+  background-color: white;
+  width: 97%;
   padding: 0.8rem;
   border: 1px solid #e1e8ed;
   border-radius: 8px;
@@ -57,30 +63,35 @@ body {
 }
 
 .search {
-  position: fixed;
-  top: 1rem;
-  right: 90px;
+  position: static;
   background-color: white;
   padding: 1rem;
   border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  width: 500px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  margin-bottom: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.search-keyword,
+.search-tag {
+  width: 97%;
+  padding: 0.8rem;
+  border: 1px solid #e1e8ed;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
 }
 
 .search form {
+  background-color: white;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.search-keyword,
-.search-tag {
-  width: 500*0.9%;
-  padding: 0.8rem;
-  border: 1px solid #e1e8ed;
-  border-radius: 8px;
-  font-size: 1rem;
-}
+
+
 
 .search-button {
   background-color: #1d9bf0;
@@ -92,6 +103,8 @@ body {
   cursor: pointer;
   transition: background-color 0.2s;
   width: 100%;
+  margin-top: 0.5rem;
+
 }
 
 .search-button:hover {
@@ -106,41 +119,76 @@ body {
 }
 
 .memo-card {
+  background-color: white;
   padding: 1rem;
-  border-bottom: 1px solid #e1e8ed;
+  /* border-bottom: 1px solid #c3c9ce; */
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .memo-card:last-child {
   border-bottom: none;
 }
 
+.memo-card:hover {
+  transform: scale(1.03);
+  border: solid 2px #1a8cd8;
+  border-radius: 8px;
+}
+
 .memo-title {
+  background-color: white;
   font-weight: bold;
   margin-bottom: 0.5rem;
   color: #0f1419;
 }
 
 .memo-body {
+  background-color: white;
   color: #536471;
   line-height: 1.5;
 }
 
-hr {
+/* hr {
   border: none;
   border-bottom: 1px solid #e1e8ed;
   margin: 0;
-}
+} */
 
-@media not screen and (min-width: 1400px) {
+/* @media not screen and (min-width: 1400px) {
   .search {
     position: static;
-    width: 100%;
+    background-color: white;
+    padding: 1rem;
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     margin-bottom: 1rem;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .search-keyword,
   .search-tag {
+    width: 97%;
+    padding: 0.8rem;
+    border: 1px solid #e1e8ed;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+  }
+
+  .search-button {
+    background-color: #1d9bf0;
+    color: white;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: 9999px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
     width: 100%;
+    margin-top: 0.5rem;
+
   }
 
   #root {
@@ -152,4 +200,4 @@ hr {
   .timeline {
     margin: 0.5rem 0;
   }
-}
+} */
