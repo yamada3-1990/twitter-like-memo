@@ -40,6 +40,11 @@ export const MemoList = (props) => {
                         <div className='memo-content'>
                             <div className='memo-title'>{memo.title}</div>
                             <div className='memo-body'>{memo.body}</div>
+                            <div className='memo-tags'>
+                                {memo.tags && memo.tags.split(',').map((tag, index) => (
+                                    <span key={index} className='tag'>#{tag.trim()} </span>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -8,7 +8,7 @@
 
 * {
   /* background-color: #ddf2ff; */
-  background-color: #ea6e6e;
+  background-color: #ffffff;
   color: #0f1419;
 }
 
@@ -46,7 +46,7 @@ body {
 }
 
 .post-button {
-  background-color: #1d9bf0;
+  background-color: #1DA1F2;
   color: white;
   border: none;
   padding: 0.8rem 1.5rem;
@@ -59,7 +59,7 @@ body {
 }
 
 .post-button:hover {
-  background-color: #1a8cd8;
+  background-color: #1DA1F2;
 }
 
 .search {
@@ -94,7 +94,7 @@ body {
 
 
 .search-button {
-  background-color: #1d9bf0;
+  background-color: #1DA1F2;
   color: white;
   border: none;
   padding: 0.8rem 1.5rem;
@@ -107,7 +107,7 @@ body {
 }
 
 .search-button:hover {
-  background-color: #1a8cd8;
+  background-color: #1DA1F2;
 }
 
 .delete-button {
@@ -166,10 +166,7 @@ body {
 
 
 .memo-card:hover {
-  background-color: white;
-  /* transform: scale(1.03); */
-  border: solid 2px #1a8cd8;
-  border-radius: 8px;
+  cursor: pointer;
 }
 
 .memo-title {
@@ -183,6 +180,17 @@ body {
   background-color: white;
   color: #536471;
   line-height: 1.5;
+}
+
+/* tags タグ */
+
+.memo-tags .tag {
+  background-color: white;
+  color: #1DA1F2;
+}
+
+.memo-tags .tag:hover {
+  text-decoration: underline;
 }
 
 /* hr {
