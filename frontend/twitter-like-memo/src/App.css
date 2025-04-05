@@ -9,7 +9,7 @@
 * {
   /* background-color: #ddf2ff; */
   background-color: #ffffff;
-  color: #0f1419;
+  color: #14171A;
 }
 
 body {
@@ -110,6 +110,22 @@ body {
   background-color: #1DA1F2;
 }
 
+.clear-button {
+  border: none;
+  border-radius: 9999px;
+  height: 30px;
+  margin-top: 10px;
+}
+
+.clear-button:hover {
+  background-color: #E1E8ED;
+  border: none;
+  border-radius: 9999px;
+  height: 30px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
 .delete-button {
   display: flex;
   width: 24px;
@@ -178,7 +194,7 @@ body {
 
 .memo-body {
   background-color: white;
-  color: #536471;
+  color: #657786;
   line-height: 1.5;
 }
 

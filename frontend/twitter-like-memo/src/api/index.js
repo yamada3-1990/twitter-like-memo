@@ -82,3 +82,25 @@ export const deleteMemo = async (memoId) => {
     }
     return response.json();
 }
+
+export const searchMemosByKeyword = async (keyword) => {
+    const queryParams = new URLSearchParams();
+    if (keyword.keyword) {
+        queryParams.append('keyword', keyword.keyword);
+    }
+
+    const response = await fetch(`${SERVER_URL}/search/keyword?${queryParams.toString()}`, {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+        },
+    });
+
+    if (response.status >= 400) {
+        const error = await response.json();
+        throw new Error(`Failed to search memos: ${JSON.stringify(error)}`);
+    }
+    return response.json();
+}
