@@ -86,10 +86,11 @@ export const SearchMemoByTags = ({ onSuccess }) => {
             </div>
 
             <div className="search-results">
+            <p>{searchResults.length} 件見つかりました</p>
                 {searchResults.length > 0 ? (
                     searchResults.map((result, index) => (
                         <div key={index} className="timeline">
-                            <p>{searchResults.length} 件見つかりました</p>
+                            
                             <div className='memo-card'>
                                 <div className='memo-content'>
                                     <div className='memo-title'>{result.title}</div>
