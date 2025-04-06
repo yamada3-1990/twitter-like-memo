@@ -68,14 +68,15 @@ export const Adding = ({ onSuccess }) => {
                     onChange={onValueChange} 
                     value={values.title}
                 />
-                <input 
+                <input
                     ref={bodyRef}
-                    className='input-body' 
-                    type='text' 
-                    name="body" 
-                    placeholder='本文' 
+                    className='input-body'
+                    type='text'
+                    name="body"
+                    placeholder='本文'
                     onChange={onValueChange}
                     value={values.body}
+                    style={{ wordWrap: 'break-word' }}
                 />
                 <input 
                     ref={tagsRef}

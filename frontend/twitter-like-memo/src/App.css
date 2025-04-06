@@ -196,6 +196,7 @@ body {
   background-color: white;
   color: #657786;
   line-height: 1.5;
+  overflow-wrap: break-word;
 }
 
 /* tags タグ */
