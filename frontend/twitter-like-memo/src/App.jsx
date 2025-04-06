@@ -34,8 +34,6 @@ function App() {
       <div className='search'>
         <form action="検索">
           <SearchMemoByKeyword onSuccess={handleMemoSearchKeyword} />
-          {/* <input className='search-tag' type='text' placeholder='タグ検索' />
-          <button className='search-button'>検索</button> */}
           <SearchMemoByTags onSuccess={handleMemoSearchTags} />
         </form>
       </div>
