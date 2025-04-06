@@ -1,15 +1,15 @@
 import React, { useState, useRef } from "react";
-import { searchMemosByKeyword } from '../api';
+import { searchMemosByTags } from '../api';
 
-export const SearchMemoByKeyword = ({ onSuccess }) => {
+export const SearchMemoByTags = ({ onSuccess }) => {
     const initialState = {
-        keyword: '',
+        tags: '',
     };
 
     const [values, setValues] = useState(initialState);
     const [searchResults, setSearchResults] = useState([]);
     const [hasSearched, setHasSearched] = useState(false);
-    const keywordRef = useRef(null);
+    const tagsRef = useRef(null);
 
     const onValueChange = (event) => {
         setValues({
@@ -21,16 +21,16 @@ export const SearchMemoByKeyword = ({ onSuccess }) => {
     const handleSubmit = async (event) => {
         event.preventDefault();
 
-        // キーワードが空の場合は検索を実行しない
-        if (!values.keyword.trim()) {
-            alert('キーワードを入力してください');
+        // タグが空の場合は検索を実行しない
+        if (!values.tags.trim()) {
+            alert('タグを入力してください');
             return;
         }
 
         setHasSearched(true);
 
         try {
-            const results = await searchMemosByKeyword(values);
+            const results = await searchMemosByTags(values);
             setSearchResults(results);
             if (onSuccess) {
                 onSuccess();
@@ -45,8 +45,8 @@ export const SearchMemoByKeyword = ({ onSuccess }) => {
         setValues(initialState);
         setSearchResults([]);
         setHasSearched(false);
-        if (keywordRef.current) {
-            keywordRef.current.value = '';
+        if (tagsRef.current) {
+            tagsRef.current.value = '';
         }
     };
 
@@ -54,13 +54,13 @@ export const SearchMemoByKeyword = ({ onSuccess }) => {
         <div>
             <div className="search-input-container">
                 <input
-                    ref={keywordRef}
+                    ref={tagsRef}
                     className='input-tag'
                     type='text'
-                    name="keyword"
-                    placeholder='キーワード検索'
+                    name="tags"
+                    placeholder='タグ検索'
                     onChange={onValueChange}
-                    value={values.keyword}
+                    value={values.tags}
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                             handleSubmit(e);

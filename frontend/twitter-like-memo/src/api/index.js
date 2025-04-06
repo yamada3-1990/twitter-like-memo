@@ -104,3 +104,25 @@ export const searchMemosByKeyword = async (keyword) => {
     }
     return response.json();
 }
+
+export const searchMemosByTags = async (tags) => {
+    const queryParams = new URLSearchParams();
+    if (tags.tags) {
+        queryParams.append('tags', tags.tags);
+    }
+
+    const response = await fetch(`${SERVER_URL}/search/tags?${queryParams.toString()}`, {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+        },
+    });
+
+    if (response.status >= 400) {
+        const error = await response.json();
+        throw new Error(`Failed to search memos: ${JSON.stringify(error)}`);
+    }
+    return response.json();
+}

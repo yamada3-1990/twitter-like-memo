@@ -5,6 +5,7 @@ import './App.css'
 import { Adding } from './components/Adding';
 import { MemoList } from './components/MemoList';
 import { SearchMemoByKeyword } from './components/SearchByKeyword';
+import { SearchMemoByTags } from './components/SearchByTag';
 
 function App() {
   const [reload, setReload] = useState(false);
@@ -21,6 +22,10 @@ function App() {
     setReload(prev => !prev);
   };
 
+  const handleMemoSearchTags = () => {
+    setReload(prev => !prev);
+  };
+
   return (
     <>
       <div>
@@ -28,10 +33,10 @@ function App() {
       </div>
       <div className='search'>
         <form action="検索">
-          {/* <input className='search-keyword' type='text' placeholder='キーワード検索' /> */}
           <SearchMemoByKeyword onSuccess={handleMemoSearchKeyword} />
-          <input className='search-tag' type='text' placeholder='タグ検索' />
-          <button className='search-button'>検索</button>
+          {/* <input className='search-tag' type='text' placeholder='タグ検索' />
+          <button className='search-button'>検索</button> */}
+          <SearchMemoByTags onSuccess={handleMemoSearchTags} />
         </form>
       </div>
       <MemoList reload={reload} onDelete={handleMemoDeleted} />
