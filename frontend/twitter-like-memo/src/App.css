@@ -163,16 +163,16 @@ body {
 
 
 .memo-header {
-  background-color: white;
   position: absolute;
   top: 1rem;
   right: 1rem;
   z-index: 1;
+  background-color: transparent;
 }
 
 .memo-content {
-  background-color: white;
   padding-top: 0.5rem;
+  background-color: transparent;
 }
 
 .memo-card:last-child {
@@ -183,27 +183,28 @@ body {
 
 .memo-card:hover {
   cursor: pointer;
+  background-color: #ececec;
 }
 
 .memo-title {
-  background-color: white;
   font-weight: bold;
   margin-bottom: 0.5rem;
   color: #0f1419;
+  background-color: transparent;
 }
 
 .memo-body {
-  background-color: white;
   color: #657786;
   line-height: 1.5;
   overflow-wrap: break-word;
+  background-color: transparent;
 }
 
 /* tags タグ */
 
 .memo-tags .tag {
-  background-color: white;
   color: #1DA1F2;
+  background-color: transparent;
 }
 
 .memo-tags .tag:hover {
