@@ -183,7 +183,7 @@ body {
 
 .memo-card:hover {
   cursor: pointer;
-  background-color: #ececec;
+  background-color: #eff2f4;
 }
 
 .memo-title {
@@ -201,6 +201,10 @@ body {
 }
 
 /* tags タグ */
+
+.memo-tags {
+  background-color: transparent;
+}
 
 .memo-tags .tag {
   color: #1DA1F2;
