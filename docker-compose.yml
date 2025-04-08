@@ -1,0 +1,35 @@
+# 複数のDockerコンテナを操作できる
+# 今まではbackendとfrontendそれぞれでbuildしてた
+
+version: '3.8'
+
+services:
+  api:
+    build: # ビルドする
+      context: ./
+      dockerfile: Dockerfile
+    container_name: backend # 任意、分かりやすくするため
+    ports:
+      - "9000:9000"
+    environment:
+      - FRONT_URL=http://localhost:5173 # どこからリクエストが来るのかを知るため
+    networks:
+      - app_network
+
+  web:
+    build:
+      context: ./frontend/twitter-like-memo
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - REACT_APP_API_URL=http://localhost:9000 # バックエンドのAPIのURL
+    depends_on:
+      - api
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge

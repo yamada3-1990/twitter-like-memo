@@ -43,6 +43,13 @@ docker build(frontend)
 
 docker run(frontend)  
 ```docker run -d -p 5173:5173 twitter-like-memo/app:latest```  
+-> http://localhost:5173/ にアクセス
 
+
+```docker-compose up```  
+```docker-compose down```
+
+
+フロントエンド開発環境
 ```cd frontend/twitter-like-memo```  
 ```npm run dev```
