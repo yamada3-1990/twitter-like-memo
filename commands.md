@@ -32,9 +32,17 @@ run
 ~~build~~  
 ~~```docker build -t twitter-like-memo/app:latest .```~~
 
-~~run~~  
+~~run(backend)~~  
 ~~```docker run -d -p 9000:9000 twitter-like-memo/app:latest```~~  
 
+~~run(front)~~  
+~~```docker run -d -p 3000:3000 twitter-like-memo/app:latest```~~  
+
+docker build(frontend)  
+```docker build -t twitter-like-memo/app:latest .```  
+
+docker run(frontend)  
+```docker run -d -p 5173:5173 twitter-like-memo/app:latest```  
 
 ```cd frontend/twitter-like-memo```  
 ```npm run dev```
