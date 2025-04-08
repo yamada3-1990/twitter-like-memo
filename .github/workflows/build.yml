@@ -1,5 +1,5 @@
 name: build
-run-name: 📦 Packaging up ${{ github.ref_name }}!
+run-name: 📦 Packaging up >> ${{ github.ref_name }} <<!
 on: [push]
 
 env:
@@ -48,3 +48,13 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+
+      - name: Notify Discord
+        run: |
+          curl -H "Content-Type: application/json" \
+          -X POST \
+          -d '{
+            "content": "✨ packagingが完了しました！https://github.com/yamada3-1990/twitter-like-memo/actions"
+          }' \
+           ${{ secrets.DISCORD_WEBHOOK_URL }}

@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -57,7 +58,7 @@ func (s Server) Run() int {
 	// CORSの設定
 	frontURL, found := os.LookupEnv("FRONT_URL")
 	if !found {
-		frontURL = "http://localhost:3000"
+		frontURL = "http://localhost:5173"
 	}
 
 	db, err := sql.Open("sqlite3", "db/memo.sqlite3")
@@ -79,13 +80,13 @@ func (s Server) Run() int {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /memos", h.AddMemo)
 	mux.HandleFunc("GET /memos", h.GetMemos)
-	mux.HandleFunc("DELETE /memos", h.DeleteMemo)
+	mux.HandleFunc("DELETE /memos/{id}", h.DeleteMemo)
 	mux.HandleFunc("GET /search/keyword", h.SearchByKeyword)
 	mux.HandleFunc("GET /search/tags", h.SearchByTags)
 
 	// サーバーの起動
 	slog.Info("http server started on", "port", s.Port)
-	err = http.ListenAndServe(":"+s.Port, simpleCORSMiddleware(simpleLoggerMiddleware(mux), frontURL, []string{"GET", "HEAD", "POST", "OPTIONS"}))
+	err = http.ListenAndServe(":"+s.Port, simpleCORSMiddleware(simpleLoggerMiddleware(mux), frontURL, []string{"GET", "HEAD", "POST", "DELETE", "OPTIONS"}))
 	if err != nil {
 		slog.Error("failed to start server: ", "error", err)
 		return 1
@@ -97,10 +98,19 @@ func (s Server) Run() int {
 // MARK: - parseAddMemoRequest()
 // Memoの追加リクエストをパースする
 func parseAddMemoRequest(r *http.Request) (*AddMemoRequest, error) {
-	err := r.ParseForm()
+	// マルチパートフォームデータを解析
+	err := r.ParseMultipartForm(10 << 20) // 10MBの制限
 	if err != nil {
+		slog.Error("failed to parse multipart form", "error", err)
 		return nil, err
 	}
+
+	// フォームデータの内容をログ出力
+	slog.Info("received form data",
+		"form", r.Form,
+		"postForm", r.PostForm,
+		"multipartForm", r.MultipartForm,
+	)
 
 	tags := r.Form["tags"] // 複数のタグを取得
 	var tagList []string
@@ -113,6 +123,13 @@ func parseAddMemoRequest(r *http.Request) (*AddMemoRequest, error) {
 		Body:  r.FormValue("body"),
 		Tags:  strings.Join(tagList, ","),
 	}
+
+	// パースされたリクエストの内容をログ出力
+	slog.Info("parsed request",
+		"title", req.Title,
+		"body", req.Body,
+		"tags", req.Tags,
+	)
 
 	// バリデーション
 	if req.Title == "" {
@@ -184,49 +201,36 @@ func (s *Handlers) GetMemos(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// MARK: - parseDeleteMemoRequest()
-// Memoの削除リクエストをパースする
-func parseDeleteMemoRequest(r *http.Request) (*AddMemoRequest, error) {
-	var req = &AddMemoRequest{
-		Title: r.FormValue("title"),
-		Body:  r.FormValue("body"),
-	}
-
-	// バリデーション
-	if req.Title == "" {
-		return nil, errors.New("deleted title is required")
-	}
-
-	if req.Body == "" {
-		return nil, errors.New("body is required")
-	}
-
-	return req, nil
-}
-
 // MARK: - DeleteMemo()
-// DELETE /memos でメモを削除
+// DELETE /memos/{id} でメモを削除
 func (s *Handlers) DeleteMemo(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	req, err := parseDeleteMemoRequest(r)
+	// URLからIDを取得
+	id := r.PathValue("id")
+	if id == "" {
+		http.Error(w, "ID is required", http.StatusBadRequest)
+		return
+	}
+
+	// IDを整数に変換
+	memoID, err := strconv.Atoi(id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid ID format", http.StatusBadRequest)
 		return
 	}
 
 	memo := &Memo{
-		Title: req.Title,
-		Body:  req.Body,
+		ID: memoID,
 	}
-	message := fmt.Sprintf("deleted memo: %s", memo.Title)
+	message := fmt.Sprintf("deleted memo: %d", memo.ID)
 	slog.Info(message)
 
 	err = s.itemRepo.Delete(ctx, memo)
 	if err != nil {
-		if errors.Is(err, errors.New("memo not exist")) { // カスタムエラーをチェック
-			slog.Error("memo not exist", "error", err)           // 警告ログ
-			http.Error(w, "memo not exist", http.StatusNotFound) // 404エラー
+		if errors.Is(err, errors.New("memo not exist")) {
+			slog.Error("memo not exist", "error", err)
+			http.Error(w, "memo not exist", http.StatusNotFound)
 			return
 		}
 		slog.Error("failed to delete memo: ", "error", err)

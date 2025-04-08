@@ -149,11 +149,16 @@ func (i *itemRepository) Delete(ctx context.Context, memo *Memo) error {
 		return err
 	}
 	defer tx.Rollback()
-	title := memo.Title
-	body := memo.Body
 
-	query := `DELETE FROM memos WHERE title = ? AND body = ?`
-	result, err := tx.ExecContext(ctx, query, title, body)
+	// まずメモとタグの関連付けを削除
+	_, err = tx.ExecContext(ctx, "DELETE FROM memo_tags WHERE memo_id = ?", memo.ID)
+	if err != nil {
+		return err
+	}
+
+	// メモを削除
+	query := `DELETE FROM memos WHERE id = ?`
+	result, err := tx.ExecContext(ctx, query, memo.ID)
 	if err != nil {
 		return err
 	}
@@ -164,7 +169,7 @@ func (i *itemRepository) Delete(ctx context.Context, memo *Memo) error {
 	}
 
 	if rowsAffected == 0 {
-		return errors.New("memo not exist") // カスタムエラーを返す
+		return errors.New("memo not exist")
 	}
 
 	err = tx.Commit()
