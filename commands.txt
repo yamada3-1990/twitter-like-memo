@@ -1,5 +1,0 @@
-go run backend/cmd/main.go
-
-curl.exe -X GET 'http://127.0.0.1:9000/memos'
-
-curl.exe -X POST --url 'http://localhost:9000/memos' -d 'title=test' -d 'body=testtest'

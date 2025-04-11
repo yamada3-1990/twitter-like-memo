@@ -1,0 +1,45 @@
+import { useState } from 'react'
+import reactLogo from './assets/react.svg'
+import viteLogo from '/vite.svg'
+import './App.css'
+import { Adding } from './components/Adding';
+import { MemoList } from './components/MemoList';
+import { SearchMemoByKeyword } from './components/SearchByKeyword';
+import { SearchMemoByTags } from './components/SearchByTag';
+
+function App() {
+  const [reload, setReload] = useState(false);
+
+  const handleMemoAdded = () => {
+    setReload(prev => !prev);
+  };
+
+  const handleMemoDeleted = () => {
+    setReload(prev => !prev);
+  };
+
+  const handleMemoSearchKeyword = () => {
+    setReload(prev => !prev);
+  };
+
+  const handleMemoSearchTags = () => {
+    setReload(prev => !prev);
+  };
+
+  return (
+    <>
+      <div>
+        <Adding onSuccess={handleMemoAdded} />
+      </div>
+      <div className='search'>
+        <form action="検索">
+          <SearchMemoByKeyword onSuccess={handleMemoSearchKeyword} />
+          <SearchMemoByTags onSuccess={handleMemoSearchTags} />
+        </form>
+      </div>
+      <MemoList reload={reload} onDelete={handleMemoDeleted} />
+    </>
+  )
+}
+
+export default App

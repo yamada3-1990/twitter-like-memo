@@ -8,6 +8,8 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -29,12 +31,22 @@ type AddMemoRequest struct {
 	ID    int    `form:"id"`
 	Title string `form:"title"`
 	Body  string `form:"body"`
+	Tags  string `form:"tags"`
 }
 
 type AddMemoResponse struct {
 	Message string `json:"message"`
 }
 
+type SearchByKeywordRequest struct {
+	keyword string
+}
+
+type SearchByTagsRequest struct {
+	tags []string
+}
+
+// MARK: - Run()
 func (s Server) Run() int {
 	// ログ設定
 	opts := slog.HandlerOptions{
@@ -46,7 +58,7 @@ func (s Server) Run() int {
 	// CORSの設定
 	frontURL, found := os.LookupEnv("FRONT_URL")
 	if !found {
-		frontURL = "http://localhost:3000"
+		frontURL = "http://localhost:5173"
 	}
 
 	db, err := sql.Open("sqlite3", "db/memo.sqlite3")
@@ -68,10 +80,13 @@ func (s Server) Run() int {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /memos", h.AddMemo)
 	mux.HandleFunc("GET /memos", h.GetMemos)
+	mux.HandleFunc("DELETE /memos/{id}", h.DeleteMemo)
+	mux.HandleFunc("GET /search/keyword", h.SearchByKeyword)
+	mux.HandleFunc("GET /search/tags", h.SearchByTags)
 
 	// サーバーの起動
 	slog.Info("http server started on", "port", s.Port)
-	err = http.ListenAndServe(":"+s.Port, simpleCORSMiddleware(simpleLoggerMiddleware(mux), frontURL, []string{"GET", "HEAD", "POST", "OPTIONS"}))
+	err = http.ListenAndServe(":"+s.Port, simpleCORSMiddleware(simpleLoggerMiddleware(mux), frontURL, []string{"GET", "HEAD", "POST", "DELETE", "OPTIONS"}))
 	if err != nil {
 		slog.Error("failed to start server: ", "error", err)
 		return 1
@@ -80,12 +95,41 @@ func (s Server) Run() int {
 	return 0
 }
 
+// MARK: - parseAddMemoRequest()
 // Memoの追加リクエストをパースする
 func parseAddMemoRequest(r *http.Request) (*AddMemoRequest, error) {
-	var req = &AddMemoRequest{
+	// マルチパートフォームデータを解析
+	err := r.ParseMultipartForm(10 << 20) // 10MBの制限
+	if err != nil {
+		slog.Error("failed to parse multipart form", "error", err)
+		return nil, err
+	}
+
+	// フォームデータの内容をログ出力
+	slog.Info("received form data",
+		"form", r.Form,
+		"postForm", r.PostForm,
+		"multipartForm", r.MultipartForm,
+	)
+
+	tags := r.Form["tags"] // 複数のタグを取得
+	var tagList []string
+	for _, tag := range tags {
+		tagList = append(tagList, strings.Split(tag, ",")...) // カンマ区切りのタグを分割
+	}
+
+	req := &AddMemoRequest{
 		Title: r.FormValue("title"),
 		Body:  r.FormValue("body"),
+		Tags:  strings.Join(tagList, ","),
 	}
+
+	// パースされたリクエストの内容をログ出力
+	slog.Info("parsed request",
+		"title", req.Title,
+		"body", req.Body,
+		"tags", req.Tags,
+	)
 
 	// バリデーション
 	if req.Title == "" {
@@ -99,6 +143,7 @@ func parseAddMemoRequest(r *http.Request) (*AddMemoRequest, error) {
 	return req, nil
 }
 
+// MARK: - AddMemo()
 // POST /memos でメモを追加
 func (s *Handlers) AddMemo(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -112,6 +157,7 @@ func (s *Handlers) AddMemo(w http.ResponseWriter, r *http.Request) {
 	memo := &Memo{
 		Title: req.Title,
 		Body:  req.Body,
+		Tags:  req.Tags,
 	}
 	message := fmt.Sprintf("memo received: %s", memo.Title)
 	slog.Info(message)
@@ -131,6 +177,8 @@ func (s *Handlers) AddMemo(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// MARK: - GetMemos()
+// GET /memos でメモを取得
 func (s *Handlers) GetMemos(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -151,4 +199,153 @@ func (s *Handlers) GetMemos(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+// MARK: - DeleteMemo()
+// DELETE /memos/{id} でメモを削除
+func (s *Handlers) DeleteMemo(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// URLからIDを取得
+	id := r.PathValue("id")
+	if id == "" {
+		http.Error(w, "ID is required", http.StatusBadRequest)
+		return
+	}
+
+	// IDを整数に変換
+	memoID, err := strconv.Atoi(id)
+	if err != nil {
+		http.Error(w, "Invalid ID format", http.StatusBadRequest)
+		return
+	}
+
+	memo := &Memo{
+		ID: memoID,
+	}
+	message := fmt.Sprintf("deleted memo: %d", memo.ID)
+	slog.Info(message)
+
+	err = s.itemRepo.Delete(ctx, memo)
+	if err != nil {
+		if errors.Is(err, errors.New("memo not exist")) {
+			slog.Error("memo not exist", "error", err)
+			http.Error(w, "memo not exist", http.StatusNotFound)
+			return
+		}
+		slog.Error("failed to delete memo: ", "error", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	resp := AddMemoResponse{Message: message}
+	err = json.NewEncoder(w).Encode(resp)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+// MARK: - parseSearchByKeywordRequest()
+// Memoのキーワード検索リクエストをパースする
+func parseSearchByKeywordRequest(r *http.Request) (*SearchByKeywordRequest, error) {
+	req := &SearchByKeywordRequest{
+		keyword: r.URL.Query().Get("keyword"),
+	}
+
+	// バリデーション
+	if req.keyword == "" {
+		return nil, errors.New("keyword is required")
+	}
+	return req, nil
+}
+
+// MARK: - SearchByKeyword()
+// GET /search/keyword でメモを検索
+func (s *Handlers) SearchByKeyword(w http.ResponseWriter, r *http.Request) {
+	req, err := parseSearchByKeywordRequest(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	memos, err := s.itemRepo.SearchByKeyword(r.Context(), req.keyword)
+
+	if err != nil {
+		if errors.Is(err, errMemoNotFound) {
+			slog.Warn("memo not exist: ", "error", err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+
+	if memos == nil {
+		memos = []Memo{}
+	}
+
+	jsonData, err := json.Marshal(memos)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(jsonData)
+}
+
+// MARK: - parseSearchByTagsRequest()
+// Memoのタグ検索リクエストをパースする
+func parseSearchByTagsRequest(r *http.Request) (*SearchByTagsRequest, error) {
+	// クエリパラメータから直接取得
+	tags := r.URL.Query()["tags"]
+	if len(tags) == 0 {
+		return nil, errors.New("tags is required")
+	}
+
+	var tagList []string
+	for _, tag := range tags {
+		tagList = append(tagList, strings.Split(tag, ",")...) // カンマ区切りのタグを分割
+	}
+
+	req := &SearchByTagsRequest{
+		tags: tagList,
+	}
+
+	return req, nil
+}
+
+// MARK: - SearchByTag()
+// GET /search/tags でメモを検索
+func (s *Handlers) SearchByTags(w http.ResponseWriter, r *http.Request) {
+	req, err := parseSearchByTagsRequest(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	memos, err := s.itemRepo.SearchByTags(r.Context(), req.tags)
+
+	if err != nil {
+		if errors.Is(err, errMemoNotFound) {
+			slog.Warn("memo not exist: ", "error", err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+
+	if memos == nil {
+		memos = []Memo{}
+	}
+
+	jsonData, err := json.Marshal(memos)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(jsonData)
+
 }
