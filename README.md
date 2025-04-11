@@ -49,7 +49,7 @@ TwitterライクなUIのメモアプリです。復習も兼ねて作成。
 - Nginx 
 - GitHub Actions
 
-## 実行方法
+## 実行(できるはず)
 
 ### Dockerを使用して実行
 
