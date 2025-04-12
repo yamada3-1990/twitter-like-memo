@@ -1,5 +1,6 @@
+# push時にdocker imageをビルドしてghcr.ioにpushする
 name: build
-run-name: 📦 Packaging up >> ${{ github.ref_name }} <<!
+run-name: 📦 Packaging up >> ${{ github.ref_name }} <<
 on: [push]
 
 env:
@@ -50,6 +51,7 @@ jobs:
           cache-to: type=gha,mode=max
 
 
+      # GitHub Actionsの実行が終わったらDiscordに通知
       - name: Notify Discord
         run: |
           curl -H "Content-Type: application/json" \
