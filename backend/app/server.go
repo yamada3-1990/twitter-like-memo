@@ -24,9 +24,11 @@ type Server struct {
 type Handlers struct {
 	// 画像を保存するディレクトリへのパス
 	imgDirPath string
-	itemRepo   ItemRepository
+	// ItemRepositoryインターフェース
+	itemRepo ItemRepository
 }
 
+// AddMemoRequest 構造体
 type AddMemoRequest struct {
 	ID    int    `form:"id"`
 	Title string `form:"title"`
@@ -34,19 +36,30 @@ type AddMemoRequest struct {
 	Tags  string `form:"tags"`
 }
 
+// メモ追加時に返されるメッセージ
 type AddMemoResponse struct {
 	Message string `json:"message"`
 }
 
+// keyword検索用の構造体
 type SearchByKeywordRequest struct {
 	keyword string
 }
 
+// tag検索用の構造体 複数のtagを格納するためにスライスを利用
 type SearchByTagsRequest struct {
 	tags []string
 }
 
 // MARK: - Run()
+/*
+ログ設定
+CORS設定
+データベースへの接続
+ハンドラ設定
+ルーティング
+サーバの起動
+*/
 func (s Server) Run() int {
 	// ログ設定
 	opts := slog.HandlerOptions{
@@ -56,11 +69,14 @@ func (s Server) Run() int {
 	slog.SetDefault(logger)
 
 	// CORSの設定
+	// フロントエンドのURL
+	// .LookupEnv(): LookupEnv(key) keyで指定された環境変数を取得 存在する場合はその値とtrueを返す
 	frontURL, found := os.LookupEnv("FRONT_URL")
 	if !found {
 		frontURL = "http://localhost:5173"
 	}
 
+	// .Open(): dbドライバとデータソース名を指定して開く
 	db, err := sql.Open("sqlite3", "db/memo.sqlite3")
 	if err != nil {
 		slog.Error("failed to open database: ", "error", err)
@@ -74,9 +90,12 @@ func (s Server) Run() int {
 		slog.Error("failed to create item repository: ", "error", err)
 		return 1
 	}
+	// Handlers構造体の新しいインスタンスを作成する
 	h := &Handlers{imgDirPath: s.ImageDirPath, itemRepo: itemRepo}
 
 	// ルーティング
+	// .NewServeMux(): 新しいServeMuxを割り当てて返す
+	// ServeMux: HTTPリクエストのマルチプレクサ(multiplexer, 複数の入力信号を1つの出力信号に合成する論理回路)
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /memos", h.AddMemo)
 	mux.HandleFunc("GET /memos", h.GetMemos)
@@ -86,6 +105,9 @@ func (s Server) Run() int {
 
 	// サーバーの起動
 	slog.Info("http server started on", "port", s.Port)
+	// .ListenAndServe(): 与えられたアドレスとハンドラでHTTPサーバを開始
+	// simpleCORSMiddleware(): middleware.goで定義されている
+	// simpleLoggerMiddleware(): middleware.goで定義されている
 	err = http.ListenAndServe(":"+s.Port, simpleCORSMiddleware(simpleLoggerMiddleware(mux), frontURL, []string{"GET", "HEAD", "POST", "DELETE", "OPTIONS"}))
 	if err != nil {
 		slog.Error("failed to start server: ", "error", err)
@@ -97,8 +119,10 @@ func (s Server) Run() int {
 
 // MARK: - parseAddMemoRequest()
 // Memoの追加リクエストをパースする
+// HTTPリクエスト(*http.Request)からメモの情報を取り出してAddMemoRequest構造体に格納
 func parseAddMemoRequest(r *http.Request) (*AddMemoRequest, error) {
 	// マルチパートフォームデータを解析
+	// .ParseMultipartForm(): リクエストボディをmultipart/form-dataとして解析する
 	err := r.ParseMultipartForm(10 << 20) // 10MBの制限
 	if err != nil {
 		slog.Error("failed to parse multipart form", "error", err)
@@ -106,26 +130,32 @@ func parseAddMemoRequest(r *http.Request) (*AddMemoRequest, error) {
 	}
 
 	// フォームデータの内容をログ出力
-	slog.Info("received form data",
+	slog.Info(
+		"received form data",
 		"form", r.Form,
 		"postForm", r.PostForm,
 		"multipartForm", r.MultipartForm,
 	)
 
-	tags := r.Form["tags"] // 複数のタグを取得
+	// HTTPリクエストのフォームデータからtagsという名前のフィールドの値を取得
+	tags := r.Form["tags"]
 	var tagList []string
 	for _, tag := range tags {
-		tagList = append(tagList, strings.Split(tag, ",")...) // カンマ区切りのタグを分割
+		// カンマ区切りのタグを分割
+		// .Split(s, sep): sをsepで分割された部分文字列にスライス
+		tagList = append(tagList, strings.Split(tag, ",")...)
 	}
 
 	req := &AddMemoRequest{
+		// .FormValue(): クエリの値を返す
 		Title: r.FormValue("title"),
 		Body:  r.FormValue("body"),
 		Tags:  strings.Join(tagList, ","),
 	}
 
 	// パースされたリクエストの内容をログ出力
-	slog.Info("parsed request",
+	slog.Info(
+		"parsed request",
 		"title", req.Title,
 		"body", req.Body,
 		"tags", req.Tags,
@@ -146,8 +176,10 @@ func parseAddMemoRequest(r *http.Request) (*AddMemoRequest, error) {
 // MARK: - AddMemo()
 // POST /memos でメモを追加
 func (s *Handlers) AddMemo(w http.ResponseWriter, r *http.Request) {
+	// リクエストのコンテクストを返す
 	ctx := r.Context()
 
+	// リクエストをパースする
 	req, err := parseAddMemoRequest(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -169,9 +201,13 @@ func (s *Handlers) AddMemo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Memo追加が成功したメッセージを追加
 	resp := AddMemoResponse{Message: message}
+	// .NewEncoder(): wに書き込む新しいエンコーダを返す
+	// .Encode(): JSON形式にエンコーディングする
 	err = json.NewEncoder(w).Encode(resp)
 	if err != nil {
+		// StatusInternalServerError: 500 ウェブサイトをホストしているサーバー側で何らかの不具合が発生
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -189,11 +225,15 @@ func (s *Handlers) GetMemos(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := struct {
+		// 複数のMemoオブジェクトを格納するため
 		Memos []Memo `json:"memos"`
 	}{
 		Memos: memos,
 	}
 
+	// w.Header()でレスポンスのHTTPヘッダーを取得する
+	// 取得したHTTPヘッダーに対して、Content-Type ヘッダーを設定、値は"application/json"
+	// これから送信するレスポンスボディはJSON形式だよーと通知する
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -207,6 +247,9 @@ func (s *Handlers) DeleteMemo(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// URLからIDを取得
+	// .PathValue(): リクエストにマッチしたServeMuxパターン中の指定されたパスワイルドカードの値を返す
+	// "id"という名前のパスワイルドカードの値を取得している
+	// Path Wildcard: URLの特定の部分を変数として扱うための記法 /memos/{id}の{}の部分
 	id := r.PathValue("id")
 	if id == "" {
 		http.Error(w, "ID is required", http.StatusBadRequest)
@@ -220,7 +263,9 @@ func (s *Handlers) DeleteMemo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Memo構造体の新しいインスタンスを作成
 	memo := &Memo{
+		// IDフィールドのみを初期化
 		ID: memoID,
 	}
 	message := fmt.Sprintf("deleted memo: %d", memo.ID)
@@ -230,6 +275,7 @@ func (s *Handlers) DeleteMemo(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, errors.New("memo not exist")) {
 			slog.Error("memo not exist", "error", err)
+			// StatusNotFound: 404 ページが存在しない
 			http.Error(w, "memo not exist", http.StatusNotFound)
 			return
 		}
@@ -249,6 +295,8 @@ func (s *Handlers) DeleteMemo(w http.ResponseWriter, r *http.Request) {
 // MARK: - parseSearchByKeywordRequest()
 // Memoのキーワード検索リクエストをパースする
 func parseSearchByKeywordRequest(r *http.Request) (*SearchByKeywordRequest, error) {
+	// keyword用の構造体に、クエリパラメータからkeywordを取得して格納
+	// 'http://127.0.0.1:9000/search/keyword?keyword=おはよう'の ? で始まる部分がクエリパラメータ
 	req := &SearchByKeywordRequest{
 		keyword: r.URL.Query().Get("keyword"),
 	}
@@ -269,6 +317,7 @@ func (s *Handlers) SearchByKeyword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// SearchByKeyword関数にkeywordを渡す
 	memos, err := s.itemRepo.SearchByKeyword(r.Context(), req.keyword)
 
 	if err != nil {
@@ -284,6 +333,7 @@ func (s *Handlers) SearchByKeyword(w http.ResponseWriter, r *http.Request) {
 		memos = []Memo{}
 	}
 
+	// .Marchal(): JSONのエンコーディングを返す
 	jsonData, err := json.Marshal(memos)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -291,6 +341,7 @@ func (s *Handlers) SearchByKeyword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	// JSONにエンコーディングした結果をレスポンスボディに書き込む
 	w.Write(jsonData)
 }
 
@@ -305,7 +356,8 @@ func parseSearchByTagsRequest(r *http.Request) (*SearchByTagsRequest, error) {
 
 	var tagList []string
 	for _, tag := range tags {
-		tagList = append(tagList, strings.Split(tag, ",")...) // カンマ区切りのタグを分割
+		// カンマ区切りのタグを分割
+		tagList = append(tagList, strings.Split(tag, ",")...) 
 	}
 
 	req := &SearchByTagsRequest{

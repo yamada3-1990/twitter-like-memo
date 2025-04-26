@@ -5,6 +5,7 @@
   <img src="https://img.shields.io/badge/-Node.js-000000.svg?logo=node.js">
   <img src="https://img.shields.io/badge/-React-20232A?logo=react">
   <img src="https://img.shields.io/badge/-Vite-646CFF?logo=vite">
+  <img src="https://img.shields.io/badge/-JavaScript-646CFF?logo=javascript">
   <!-- バックエンド -->
   <img src="https://img.shields.io/badge/-Go-00ADD8?logo=go&logoColor=white">
   <!-- ミドルウェア -->
