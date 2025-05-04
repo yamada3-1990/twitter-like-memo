@@ -3,6 +3,8 @@ import { fetchMemos, Memo } from "../api";
 import { Delete } from "./Delete";
 
 export const MemoList = (props) => {
+    // memosに取得したメモを追加していく
+    // setMemosはmemosを更新して再レンダリングのトリガーをする
     const [memos, setMemos] = useState([]);
     const reload = props.reload;
     const onDelete = props.onDelete;
@@ -25,7 +27,7 @@ export const MemoList = (props) => {
     const handleDelete = () => {
         fetchMemoList(); // 削除後にメモリストを更新
         if (onDelete) {
-            onDelete(); // 親コンポーネントに削除完了を通知
+            onDelete(); // 親コンポーネント(App.jsx)に削除完了を通知
         }
     };
 

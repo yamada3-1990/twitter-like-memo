@@ -1,3 +1,5 @@
+// バックエンドとの通信に必要な関数を定義する
+
 const SERVER_URL = import.meta.env.VITE_API_URL || '/api';
 
 export function Memo(id, title, body, tags) {
@@ -7,10 +9,12 @@ export function Memo(id, title, body, tags) {
     this.tags = tags;
 };
 
+// MemoListResponseという名前のオブジェクトを定義
 export const MemoListResponse = {
     memos: Memo
 };
 
+// 非同期関数
 export const fetchMemos = async () => {
     const response = await fetch(`${SERVER_URL}/memos`, {
         method: 'GET',
@@ -29,12 +33,14 @@ export const fetchMemos = async () => {
 };
 
 export const addMemos = async (input) => {
+    // .FormData(): サーバーにデータを送信する際に使用するオブジェクト
     const data = new FormData();
+    // varidation
     data.append('title', input.title || '無題');
     data.append('body', input.body);
     data.append('tags', input.tags || '');
 
-    // FormDataの内容を確認
+    // デバッグ用 FormDataの内容を確認
     console.log('FormData contents:');
     for (let [key, value] of data.entries()) {
         console.log(`${key}: ${value}`);
@@ -49,12 +55,14 @@ export const addMemos = async (input) => {
         body: data,
     });
 
+    // エラーハンドリング
     if (response.status >= 400) {
         const contentType = response.headers.get('content-type');
         let errorMessage;
         
         if (contentType && contentType.includes('application/json')) {
             const errorJson = await response.json();
+            // JSON.stringify(): JSON文字列に変換
             errorMessage = JSON.stringify(errorJson);
         } else {
             errorMessage = await response.text();

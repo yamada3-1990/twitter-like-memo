@@ -19,3 +19,6 @@ CREATE TABLE IF NOT EXISTS memo_tags (
     FOREIGN KEY (tag_id) REFERENCES tags(id),
     PRIMARY KEY (memo_id, tag_id)
 );               
+
+-- 同じ名前のタグが重複して格納されるのを防ぐ
+-- 一つのタグを複数のメモに関連付ける(タグ検索用)
